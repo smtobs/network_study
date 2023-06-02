@@ -1,0 +1,2 @@
+#define BROADCAST_PORT 8888
+#define MAX_BUFSIZE    2048
