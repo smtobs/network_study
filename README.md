@@ -11,3 +11,8 @@ netfilter은 kernel 내에 있는 네트워크 관련 프레임워크이다. 먼
 
 <img width="296" alt="image" src="https://github.com/smtobs/network_study/assets/50127167/caa64e81-ddf5-4a03-ac74-2a4d2aa5f4dc">
 
+## 2_broadcast
+소켓 옵션 기능을 이용하여 브로드 캐스팅 기능을 구현.
+
+## 3_interface_up_down_event
+넷링크 소켓을 이용하여 인터페이스 모니터링 기능 구현.
