@@ -45,7 +45,7 @@ int scan_callback(struct nl_msg *msg, void *arg)
     /* Show BSSID */
     if (bss[NL80211_BSS_BSSID])
     {
-        char mac_addr[20] = {0,};
+        unsigned char mac_addr[20] = {0,};
         unsigned char *mac = nla_data(bss[NL80211_BSS_BSSID]);
 
         if (mac == NULL)
@@ -57,6 +57,8 @@ int scan_callback(struct nl_msg *msg, void *arg)
             snprintf(mac_addr, sizeof(mac_addr), "%02x:%02x:%02x:%02x:%02x:%02x",
                      mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
             printf("BSSID:\t\t%s\n", mac_addr);
+
+	    set_mac_addr(mac_addr);
         }
     }
 

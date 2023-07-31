@@ -304,3 +304,25 @@ void station_handler(struct nlattr **sinfo)
                nla_get_u32(sinfo[NL80211_STA_INFO_CONNECTED_TIME]));
     }
 }
+
+
+static unsigned char mac[20];
+void set_mac_addr(const unsigned char *mac_addr)
+{
+    if (mac_addr)
+    	snprintf(mac, sizeof(mac), "%s", mac_addr);
+}
+
+unsigned char *get_mac_addr()
+{
+    static unsigned char err_mac[] = "00:11:22:33:44:55";
+
+    if (mac && (strlen(mac) == 17))
+    {
+	return mac ?  mac : err_mac;
+    }
+    else
+    {
+	return err_mac;
+    }
+}

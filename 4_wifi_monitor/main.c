@@ -88,19 +88,12 @@ static int ack_handler(struct nl_msg *msg, void *arg)
     return NL_STOP;
 }
 
-int main(int argc, char *argv[])
+static int perform_nl_ops(const char *interface)
 {
     struct nl_cb *cb;
     struct nl_msg *msg;
     int err;
 
-    if (argc < 2)
-    {
-        printf("You must provide the name of the WiFi interface as an argument.\n");
-        return -1;
-    }
-
-    const char *interface        = argv[1];
     unsigned int interface_index = if_nametoindex(interface);
 
     if (interface_index == 0)
@@ -152,62 +145,57 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    genlmsg_put(msg, 0, 0, nl80211_id, 0, NLM_F_DUMP, NL80211_CMD_GET_SCAN, 0);
-    nla_put_u32(msg, NL80211_ATTR_IFINDEX, interface_index);
-
-    err = nl_send_auto_complete(nl_sock, msg);
-    if (err < 0)
-    {
-        goto out;
-    }
-    err = 1;
-
+    int nl_ops[] = {NL80211_CMD_GET_SCAN, NL80211_CMD_GET_INTERFACE, NL80211_CMD_GET_STATION};
+    int (*cb_functions[])(struct nl_msg *, void *) = {scan_callback, get_iface_callback, get_station_callback};
+    
     nl_cb_err(cb, NL_CB_CUSTOM, error_handler, &err);
     nl_cb_set(cb, NL_CB_FINISH, NL_CB_CUSTOM, finish_handler, &err);
     nl_cb_set(cb, NL_CB_ACK, NL_CB_CUSTOM, ack_handler, &err);
-    nl_cb_set(cb, NL_CB_VALID, NL_CB_CUSTOM, scan_callback, NULL);
-    while (err > 0)
+
+    for (int i = 0; i < sizeof(nl_ops)/sizeof(nl_ops[0]); i++)
     {
-        nl_recvmsgs(nl_sock, cb);
+        genlmsg_put(msg, 0, 0, nl80211_id, 0, NLM_F_DUMP, nl_ops[i], 0);
+        if (i != 2)
+	{
+            nla_put_u32(msg, NL80211_ATTR_IFINDEX, interface_index);
+	}
+        else
+	{
+            NLA_PUT(msg, NL80211_ATTR_MAC, ETH_ALEN, get_mac_addr());
+	}
+
+        err = nl_send_auto_complete(nl_sock, msg);
+        if (err < 0)
+        {
+            goto out;
+        }
+
+        err = 1;
+        nl_cb_set(cb, NL_CB_VALID, NL_CB_CUSTOM, cb_functions[i], NULL);
+        while (err > 0)
+        {
+            nl_recvmsgs(nl_sock, cb);
+        }
     }
 
-    genlmsg_put(msg, 0, 0, nl80211_id, 0, NLM_F_DUMP, NL80211_CMD_GET_INTERFACE, 0);
-    nla_put_u32(msg, NL80211_ATTR_IFINDEX, interface_index);
-
-    err = nl_send_auto_complete(nl_sock, msg);
-    if (err < 0)
-    {
-        goto out;
-    }
-
-    err = 1;
-    nl_cb_set(cb, NL_CB_VALID, NL_CB_CUSTOM, get_iface_callback, NULL);
-    while (err > 0)
-    {
-        nl_recvmsgs(nl_sock, cb);
-    }
-    genlmsg_put(msg, 0, 0, nl80211_id, 0, NLM_F_DUMP, NL80211_CMD_GET_STATION, 0);
-    NLA_PUT(msg, NL80211_ATTR_MAC, ETH_ALEN, "80:CA:4B:85:1E:E7");
-
-    err = nl_send_auto_complete(nl_sock, msg);
-    if (err < 0)
-    {
-        goto out;
-    }
-
-    err = 1;
-    nl_cb_set(cb, NL_CB_VALID, NL_CB_CUSTOM, get_station_callback, NULL);
-
-    while (err > 0)
-    {
-        nl_recvmsgs(nl_sock, cb);
-    }
-
-nla_put_failure:
-out:
-    nlmsg_free(msg);
-    nl_cb_put(cb);
-    nl_socket_free(nl_sock);
+    nla_put_failure:
+    out:
+        nlmsg_free(msg);
+        nl_cb_put(cb);
+        nl_socket_free(nl_sock);
 
     return 0;
 }
+
+int main(int argc, char *argv[])
+{
+    if (argc < 2)
+    {
+        printf("You must provide the name of the WiFi interface argument.\n");
+        return -1;
+    }
+
+    const char *interface = argv[1];
+    perform_nl_ops(interface);
+}
+

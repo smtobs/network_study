@@ -12,4 +12,7 @@
 #include <linux/if_ether.h>
 
 void station_handler(struct nlattr **sinfo);
+void set_mac_addr(const unsigned char *mac_addr);
+unsigned char *get_mac_addr();
+
 #endif
