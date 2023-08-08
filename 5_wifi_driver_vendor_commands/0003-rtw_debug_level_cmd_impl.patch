@@ -1,0 +1,51 @@
+--- a/os_dep/linux/rtw_cfgvendor.c	2023-08-08 21:36:49.815564112 +0900
++++ b/os_dep/linux/rtw_cfgvendor.c	2023-08-08 17:24:56.829070030 +0900
+@@ -1288,7 +1288,48 @@
+ }
+ #endif /* CONFIG_RTW_CFGVEDNOR_LLSTATS */
+ 
++extern char *rtw_log_level_str[];
++
++static int rtw_cfgvendor_debug_level_set(struct wiphy *wiphy,
++	struct wireless_dev *wdev, const void  *data, int len)
++{
++	if (data == NULL)
++	{
++		RTW_ERR(FUNC_NDEV_FMT"%s data is NULL\n", FUNC_NDEV_ARG(wdev_to_ndev(wdev)), __func__);
++		return -EINVAL;
++	}
++	
++	/* Get debug level data and Set debug level */
++	int debug_level = *(int *)data;
++	if (debug_level < _DRV_NONE_ || debug_level >= _DRV_MAX_)
++	{
++        	RTW_ERR(FUNC_NDEV_FMT"Invalid debug level [%d]", FUNC_NDEV_ARG(wdev_to_ndev(wdev)), debug_level);
++		return -EINVAL;
++	}
++	else
++	{
++		RTW_PRINT("debug level [%s]\n", rtw_log_level_str[debug_level]);
++		RTW_DEBUG_SET(debug_level);
++	}
++
++	return 0;
++}
++
+ static const struct wiphy_vendor_command rtw_vendor_cmds[] = {
++	{
++		{
++			.vendor_id = OUI_BSOH,
++			.subcmd = BSOH_VENDOR_SCMD_DEBUG
++		},
++		.flags = WIPHY_VENDOR_CMD_NEED_WDEV | WIPHY_VENDOR_CMD_NEED_NETDEV,
++		.doit = rtw_cfgvendor_debug_level_set
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0))
++                ,
++                .policy = VENDOR_CMD_RAW_DATA,
++                .maxattr = 1
++#endif
++
++	},
+ #if defined(GSCAN_SUPPORT) && 0
+ 	{
+ 		{

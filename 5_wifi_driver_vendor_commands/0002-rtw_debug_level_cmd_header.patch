@@ -1,0 +1,18 @@
+--- a/os_dep/linux/rtw_cfgvendor.h	2023-08-08 21:36:49.815564112 +0900
++++ b/os_dep/linux/rtw_cfgvendor.h	2023-08-07 21:17:36.641010668 +0900
+@@ -17,6 +17,7 @@
+ #define _RTW_CFGVENDOR_H_
+ 
+ #define OUI_GOOGLE  0x001A11
++#define OUI_BSOH    0x001A12
+ #define ATTRIBUTE_U32_LEN                  (NLA_HDRLEN  + 4)
+ #define VENDOR_ID_OVERHEAD                 ATTRIBUTE_U32_LEN
+ #define VENDOR_SUBCMD_OVERHEAD             ATTRIBUTE_U32_LEN
+@@ -113,6 +114,7 @@
+     WIFI_SUBCMD_SET_RSSI_MONITOR,                       /* 0x1016 */
+     WIFI_SUBCMD_CONFIG_ND_OFFLOAD,                      /* 0x1017 */
+     /* Add more sub commands here */
++    BSOH_VENDOR_SCMD_DEBUG,
+ 
+     GSCAN_SUBCMD_MAX,
+ 

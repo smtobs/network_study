@@ -1,0 +1,23 @@
+--- a/include/rtw_debug.h	2023-08-08 21:36:49.811563910 +0900
++++ b/include/rtw_debug.h	2023-08-08 16:08:02.931183113 +0900
+@@ -15,6 +15,8 @@
+ #ifndef __RTW_DEBUG_H__
+ #define __RTW_DEBUG_H__
+ 
++#define PLATFORM_LINUX
++
+ /* driver log level*/
+ enum {
+ 	_DRV_NONE_ = 0,
+@@ -99,6 +101,11 @@
+ 
+ #if defined(_dbgdump)
+ 
++#define RTW_DEBUG_SET(x)     \
++        do {\
++                rtw_drv_log_level = x; \
++        } while (0)
++
+ /* with driver-defined prefix */
+ #undef RTW_PRINT
+ #define RTW_PRINT(fmt, arg...)     \

@@ -1,0 +1,21 @@
+--- a/Makefile	2023-08-08 21:36:49.703558456 +0900
++++ b/Makefile	2023-08-08 16:03:13.727722776 +0900
+@@ -86,7 +86,7 @@
+ CONFIG_LED_ENABLE = y
+ CONFIG_USB2_EXTERNAL_POWER = y
+ ########################## Debug ###########################
+-CONFIG_RTW_DEBUG = n
++CONFIG_RTW_DEBUG = y
+ # default log level is _DRV_INFO_ = 4,
+ # please refer to "How_to_set_driver_debug_log_level.doc" to set the available level.
+ CONFIG_RTW_LOG_LEVEL = 4
+@@ -768,6 +768,9 @@
+ ARCH := arm
+ CROSS_COMPILE := /mnt/android/lineage/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/bin/arm-linux-androidkernel-
+ KSRC := /mnt/android/lineage/kernel/oneplus/msm8974
++else
++EXTRA_CFLAGS += -DRTW_VENDOR_EXT_SUPPORT
++#EXTRA_CFLAGS += -DPLATFORM_LINUX
+ endif
+ 
+ ifeq ($(CONFIG_PLATFORM_ACTIONS_ATM702X), y)
