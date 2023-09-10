@@ -10,7 +10,7 @@ typedef struct packet_processor
 {
     filter_list *ip_filter_head;
     pthread_mutex_t lock;
-    unsigned long long packet_total_size;
+    unsigned long long icmp_packet_total_size;
     unsigned char index;
     char *interface_name;
     pthread_t thread;

@@ -3,7 +3,7 @@
 
 #include "filter_list.h"
 
-void clear_all_ip(filter_list **head)
+void clear_all_filter_list_ip(filter_list **head)
 {
     filter_list *current = *head;
     while (current)
@@ -13,10 +13,9 @@ void clear_all_ip(filter_list **head)
         free(to_delete);
     }
     *head = NULL;
-    printf("clear_all_ip\n");
 }
 
-filter_list *find_ip(filter_list *head, struct in_addr *ip)
+filter_list *find_filter_list_ip(filter_list *head, struct in_addr *ip)
 {
     filter_list *current = head;
     while (current)
@@ -30,7 +29,7 @@ filter_list *find_ip(filter_list *head, struct in_addr *ip)
     return NULL; // If IP not found in list
 }
 
-void add_new_ip(filter_list **head, struct in_addr *ip)
+void add_new_filter_list_ip(filter_list **head, struct in_addr *ip)
 {
     filter_list *new_node = malloc(sizeof(filter_list));
     new_node->ip = *ip;

@@ -32,19 +32,20 @@ void alarm_handler(int signo)
         {
             pthread_mutex_lock(&ping_monitor[i].lock);
 
-            if (ping_monitor[i].packet_total_size > SIZE_THRESHOLD)
+            /* Checking icmp pacekt total size. */
+            if (ping_monitor[i].icmp_packet_total_size > SIZE_THRESHOLD)
             {
-                fprintf(stderr, "ioctl!\n");
-                event.msg.cmd = IOCTL_ACT_CMD;
+                /* Event sending to the event loop. */
+                event.msg.cmd = IOCTL_ACT_FILTER_RUL_REQ_CMD;
                 event.msg.idx = i;
                 event_send(&event);
             }
             else
             {
-                clear_all_ip(&ping_monitor[i].ip_filter_head);
+                clear_all_filter_list_ip(&ping_monitor[i].ip_filter_head);
             }
-            printf("packet : %llu\n", ping_monitor[i].packet_total_size);
-            ping_monitor[i].packet_total_size = 0;
+            fprintf(stderr, "icmp packet total size : %llu\n", ping_monitor[i].icmp_packet_total_size);
+            ping_monitor[i].icmp_packet_total_size = 0;
 
             pthread_mutex_unlock(&ping_monitor[i].lock);
         }
@@ -52,11 +53,10 @@ void alarm_handler(int signo)
     }
 }
 
-void ioctl_ip_addr_send(struct msg_data *msg)
+void ioctl_filter_rul_req(struct msg_data *msg)
 {
     unsigned char idx = msg->idx;
 
-    printf("ioctl_ip_addr_send\n");
     pthread_mutex_lock(&ping_monitor[idx].lock);
 
     filter_list *current = ping_monitor[idx].ip_filter_head;;
@@ -65,13 +65,13 @@ void ioctl_ip_addr_send(struct msg_data *msg)
         struct _ioctl_icmp_filter filter;
 
         filter.ip = current->ip.s_addr;
-        filter.policy = 1;
+        filter.policy = ICMP_PACKET_DROP;
 
         ioctl(event.ioc_fd, IOCTL_CMD_ICMP_FILTER_REQ, &filter);
         current = current->next;
     }
 
-    clear_all_ip(&ping_monitor[idx].ip_filter_head);
+    clear_all_filter_list_ip(&ping_monitor[idx].ip_filter_head);
 
     pthread_mutex_unlock(&ping_monitor[idx].lock);
 }
@@ -123,7 +123,7 @@ void *event_handler_thread_func(void *arg)
     event.size = sizeof(struct msg_data);
     snprintf(event.ioc_path, sizeof(event.ioc_path), "/dev/%s", ICMP_FILTER_DEVICE_NAME);
     event.ioc_flags = O_RDWR;
-    event.action[IOCTL_ACT_CMD] = ioctl_ip_addr_send;
+    event.action[IOCTL_ACT_FILTER_RUL_REQ_CMD] = ioctl_filter_rul_req;
 
     /* Init Message Queue */
     init_event_handler(&event);
@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < num_interfaces; i++)
     {
-    	clear_all_ip(&ping_monitor[i].ip_filter_head);
+    	clear_all_filter_list_ip(&ping_monitor[i].ip_filter_head);
     }
     free(ping_monitor);
     return 0;
