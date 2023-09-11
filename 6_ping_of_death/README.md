@@ -15,3 +15,6 @@ ping of death 공격을 방어하기 위한 ICMP 모니터링 어플리케이션
 3) 10초 동안 ICMP 패킷 사이즈가 SIZE_THRESHOLD(8000byte) 를 초과하면 ioctl 이벤트 발생 그렇지 않을 경우에는 ICMP 토탈 사이즈 변수, filter list 구조체에 등록 된 IP를 초기화
 4) icmp_filter 드라이버에서는 "IOCTL_CMD_ICMP_FILTER_REQ" ioctl 요청이 오면 netfilter hook 등록 및 차단 리스트 등록.
 5) 라우틴 전 패킷에서 차단 리스트에 등록 된 IP주소로부터 icmp 요청이 오면 패킷을 DROP (차단리스트는 만료 시간이 존재)
+
+### ICMP 헤더
+<img width="554" alt="image" src="https://github.com/smtobs/network_study/assets/50127167/56290079-fdcb-4685-8fb7-8ec1c56d25f8">
