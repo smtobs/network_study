@@ -13,8 +13,13 @@ function init {
     git clone $REPO_URL $DIR_NAME
 }
 
-function clear {
+function deinit {
     rm -rf $DIR_NAME
+}
+
+function clear {
+    cd $DIR_NAME
+    make clear
 }
 
 function build {
@@ -29,13 +34,29 @@ function build {
     echo "Script completed."
 }
 
+function install {
+    cd $DIR_NAME
+    sudo make install
+}
+
+function uninstall {
+    cd $DIR_NAME
+    sudo make uninstall
+}
+
 if [ "$1" == "-init" ]; then
     init
+elif [ "$1" == "-deinit" ]; then
+    deinit
 elif [ "$1" == "-clear" ]; then
     clear
 elif [ "$1" == "-build" ]; then
     build
+elif [ "$1" == "-install" ]; then
+    install
+elif [ "$1" == "-uninstall" ]; then
+    uninstall
 else
-    echo "Usage: $0 [-init|-clear|-build]"
+    echo "Usage: $0 [-init|-deinit|-clear|-build|-install|-uninstall]"
 fi
 
