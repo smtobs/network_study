@@ -13,10 +13,14 @@
 ## S/W 구조
 <img width="630" alt="image" src="https://github.com/smtobs/network_study/assets/50127167/9996cacd-21ac-4b13-a2a4-bde1f1d32fb0">
 
-1) libpcap 라이브러리를 이용하여 모니터링 하고자 하는 인터페이스를 설정 후 패킷을 캡쳐
-2) ICMP 헤더 타입이 ICMP_ECHO이면 ICMP 토탈 사이즈와 ICMP를 보낸 IP주소들을 filter_list 변수와 구조체에서 관리
-3) 10초 동안 ICMP 패킷 사이즈가 SIZE_THRESHOLD(8000byte) 를 초과하면 ioctl 이벤트 발생 그렇지 않을 경우에는 ICMP 토탈 사이즈 변수, filter list 구조체에 등록 된 IP를 초기화
-4) icmp_filter 드라이버에서는 "IOCTL_CMD_ICMP_FILTER_REQ" ioctl 요청이 오면 netfilter hook이 등록되어 있지 않으면 netfilter hook, 차단 리스트 등록.
+1) libpcap 라이브러리를 이용하여 모니터링 하고자 하는 인터페이스를 설정 후 패킷을 캡쳐한다
+2) ICMP 헤더 타입이 ICMP_ECHO이면 ICMP 토탈 사이즈와 ICMP를 보낸 IP주소들을 filter_list 변수와 구조체에서 관리한다
+3) 10초 동안 ICMP 패킷 사이즈가 SIZE_THRESHOLD(8000byte) 를 초과하면 ioctl 이벤트 발생 그렇지 않을 경우에는 ICMP 토탈 사이즈 변수, filter list 구조체에 등록 된 IP를 초기화 한다
+4) icmp_filter 커널 모듈에서는 "IOCTL_CMD_ICMP_FILTER_REQ" ioctl 요청일때 netfilter hook이 등록되어 있지 않으면 netfilter hook과 차단 리스트를 등록한다(netfilter hook은 icmp_filter 함수를 등록하고 prerouting으로 등록한다)
+
+### hook (icmp_filter 함수)
+<img width="600" alt="image" src="https://github.com/smtobs/network_study/assets/50127167/09a5d28d-8d04-4787-a33c-ab952932b294">
+
 
 ## 참조
 
