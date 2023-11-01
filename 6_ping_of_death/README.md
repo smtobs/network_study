@@ -57,8 +57,3 @@ sudo ./monitor_icmp [ your interface ]
 
 ### hook (icmp_filter 함수)
 <img width="600" alt="image" src="https://github.com/smtobs/network_study/assets/50127167/09a5d28d-8d04-4787-a33c-ab952932b294">
-
-## 참조
-
-### ICMP 헤더
-<img width="554" alt="image" src="https://github.com/smtobs/network_study/assets/50127167/56290079-fdcb-4685-8fb7-8ec1c56d25f8">
