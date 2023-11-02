@@ -1,6 +1,5 @@
 # ping of death 방어 S/W
-- ping of death 공격을 방어하기 위해 특정 시간 동안 토탈 ICMP 사이즈가 일정 크기를 초과하면 **공격 대상 IP만**을 전부 일정 시간동안 ICMP 패킷을 차단하는 시스템을 구현 
-- **주의 : 이 코드는 netfilter, libpcap, L3를 공부하기 위해 작성한 코드이므로 실전에서는 사용하지를 않기를 바람, icmp 패킷 사이즈와 limit 시간을 설정을 하여 ping of death 공격을 방어하는게 훨씬 효율적임**
+<img width="700" alt="image" src="https://github.com/smtobs/network_study/assets/50127167/968f7afa-fdd3-4e74-a35c-3c0ead091a10">
 
 ## ping of death란 ?
 <img width="372" alt="image" src="https://github.com/smtobs/network_study/assets/50127167/a9160caa-efeb-4977-b296-d44dc915a604">
