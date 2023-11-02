@@ -1,4 +1,10 @@
+#include <linux/interrupt.h>
+#include <linux/atomic.h>
+
 #include "icmp_filter.h"
+
+#define ACTIVE_NETFILTER     1
+#define STANDBY_NETFILTER    0
 
 static LIST_HEAD(filter_list);
 static DEFINE_SPINLOCK(filter_lock);
@@ -7,13 +13,13 @@ static int major_number;
 static struct cdev cdev;
 static struct class *dev_class;
 static struct device *dev_device;
-static bool is_run_net_hook;
+static atomic_t is_active_netfilter = ATOMIC_INIT(0);
 
 static struct filter_entry
 {
-    __be32 ip_address;           // Big endian format of IP address
-    unsigned long timeout;       // Timeout in jiffies
-    struct list_head list;       // Kernel's list structure
+    __be32 ip_address;     // Big endian format of IP address
+    unsigned long timeout; // Timeout in jiffies
+    struct list_head list; // Kernel's list structure
 };
 
 static struct nf_hook_ops nfho =
@@ -27,12 +33,13 @@ static struct nf_hook_ops nfho =
 /*
  * icmp_ip_filter - Check if the given source IP address is in the filter list
  */
-static inline bool icmp_ip_filter(__be32 src_ip)
+static inline int drop_icmp_pkt(__be32 src_ip)
 {
     struct filter_entry *entry, *tmp;
-    bool drop_packet = false;
+    int pkt_status = NF_ACCEPT;
+    unsigned long flags;
 
-    spin_lock(&filter_lock);
+    spin_lock_irqsave(&filter_lock, flags);
 
     list_for_each_entry_safe(entry, tmp, &filter_list, list)
     {
@@ -45,35 +52,41 @@ static inline bool icmp_ip_filter(__be32 src_ip)
         else if ((htonl(entry->ip_address)) == src_ip)
         {
             printk("Drop ICMP Request Source IP Address: %pI4 \n", &src_ip);
-            drop_packet = true;
+            pkt_status = NF_DROP;
             break;
         }
     }
 
-    /* Check empty list */
-    if (list_empty(&filter_list))
-    {
-        printk("The filter list is empty.\n");
-        if (is_run_net_hook == true)
-        {
-            nf_unregister_net_hook(&init_net, &nfho);
-            is_run_net_hook = false;
-        }
-    }
+    spin_unlock_irqrestore(&filter_lock, flags);
 
-    spin_unlock(&filter_lock);
-
-    return drop_packet;
+    return pkt_status;
 }
 
 unsigned int icmp_filter(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
 {
-    struct iphdr *iph = ip_hdr(skb);
-    if (iph->protocol == IPPROTO_ICMP && icmp_ip_filter(iph->saddr))
+    struct iphdr *iph;
+    int pkt_status = NF_ACCEPT;
+
+    if (atomic_read(&is_active_netfilter) == STANDBY_NETFILTER)
     {
-        return NF_DROP;
+        return pkt_status;
     }
-    return NF_ACCEPT;
+
+    iph = ip_hdr(skb);
+    if (iph->protocol == IPPROTO_ICMP)
+    {
+        pkt_status = drop_icmp_pkt(iph->saddr);
+
+        /* Check empty list */
+        if (list_empty(&filter_list))
+        {
+            if (atomic_read(&is_active_netfilter) == ACTIVE_NETFILTER)
+            {
+                atomic_set(&is_active_netfilter, STANDBY_NETFILTER);
+            }
+        }
+    }
+    return pkt_status;
 }
 
 static void clear_filter_list(void)
@@ -87,19 +100,21 @@ static void clear_filter_list(void)
     }
 }
 
-static void add_to_filter(__be32 ip)
+static bool add_to_filter(__be32 ip)
 {
     struct filter_entry *new_entry;
     new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
     if (!new_entry)
     {
         printk(KERN_ERR "Failed to allocate memory for filter entry\n");
-        return;
+        return false;
     }
     new_entry->ip_address = ip;
     new_entry->timeout = jiffies;
 
     list_add(&new_entry->list, &filter_list);
+
+    return true;
 }
 
 static bool is_valid_ip_address(__be32 ipv4_addr)
@@ -125,43 +140,45 @@ struct file_operations icmp_filter_fops =
 
 static long ioctl_icmp_filter_fops(struct file *file, unsigned int cmd, unsigned long arg)
 {
+    unsigned long flags;
     __be32 addr;
+
+    if (_IOC_NR(cmd) >= IOC_ICMP_FILTER_MAX_CMD_NUM)
+    {
+        printk(KERN_ERR "ioctl : command number out of range\n");
+        return -ENOTTY;
+    }
+
     switch (cmd)
     {
     case IOCTL_CMD_ICMP_FILTER_REQ:
-
-        if (!copy_from_user(&ioctl_icmp_filter, (struct ioctl_icmp_filter __user *)arg, sizeof(ioctl_icmp_filter)))
+        if (copy_from_user(&ioctl_icmp_filter, (struct ioctl_icmp_filter __user *)arg, sizeof(ioctl_icmp_filter)))
         {
-            if (ioctl_icmp_filter.ip != NULL)
-            {
-                addr = htonl(ioctl_icmp_filter.ip);
-                if (is_valid_ip_address(addr) == false)
-                {
-                    return -EINVAL;
-                }
-
-                spin_lock(&filter_lock);
-                if (is_run_net_hook == false)
-                {
-                    nf_register_net_hook(&init_net, &nfho);
-                    is_run_net_hook = true;
-                }
-                /* Add IP for filter list */
-                add_to_filter(addr);
-                spin_unlock(&filter_lock);
-            }
-            else
-            {
-                printk("Filter IP address NULL.\n");
-                return -EINVAL;
-            }
-        }
-        else
-        {
-            printk("ioctl : IOCTL_CMD_ICMP_FILTER_REQ Failed !\n");
+            printk(KERN_ERR "ioctl : copy_from_user failed\n");
             return -EFAULT;
         }
+
+        if (!ioctl_icmp_filter.ip)
+        {
+            printk(KERN_ERR "ioctl : Filter IP address NULL.\n");
+            return -EINVAL;
+        }
+
+        addr = htonl(ioctl_icmp_filter.ip);
+        if (is_valid_ip_address(addr) == false)
+        {
+            return -EINVAL;
+        }
+
+        /* Add IP for filter list */
+        spin_lock_irqsave(&filter_lock, flags);
+        if (add_to_filter(addr))
+        {
+            atomic_set(&is_active_netfilter, ACTIVE_NETFILTER);
+        }
+        spin_unlock_irqrestore(&filter_lock, flags);
         break;
+
     default:
         return -ENOTTY;
     }
@@ -171,6 +188,13 @@ static long ioctl_icmp_filter_fops(struct file *file, unsigned int cmd, unsigned
 static int __init icmp_filter_init(void)
 {
     dev_t dev_no;
+
+    int ret = nf_register_net_hook(&init_net, &nfho);
+    if (ret)
+    {
+        printk(KERN_ERR "Netfilter hook registration failed with return value %d\n", ret);
+        return ret; // 모듈 로딩 실패 처리
+    }
 
     /* Alloc Major, Minor */
     if (alloc_chrdev_region(&dev_no, 0, 1, "icmp_filter") < 0)
@@ -215,14 +239,8 @@ static void __exit icmp_filter_exit(void)
     class_destroy(dev_class);
     cdev_del(&cdev);
     unregister_chrdev_region(MKDEV(major_number, 0), 1);
-
-    spin_lock(&filter_lock);
-    if (is_run_net_hook == true)
-    {
-        nf_unregister_net_hook(&init_net, &nfho);
-    }
+    nf_unregister_net_hook(&init_net, &nfho);
     clear_filter_list();
-    spin_unlock(&filter_lock);
 }
 
 module_init(icmp_filter_init);

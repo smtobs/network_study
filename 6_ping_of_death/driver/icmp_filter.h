@@ -16,10 +16,10 @@
 
 #include "../ioctl/ioctl_icmp_filter.h"
 
-static bool icmp_ip_filter(__be32);
+static int drop_icmp_pkt(__be32);
 static unsigned int icmp_filter(void *, struct sk_buff *, const struct nf_hook_state *);
 static void clear_filter_list(void);
-static void add_to_filter(__be32);
+static bool add_to_filter(__be32);
 static bool is_valid_ip_address(__be32);
 static long ioctl_icmp_filter_fops(struct file *, unsigned int, unsigned long);
 

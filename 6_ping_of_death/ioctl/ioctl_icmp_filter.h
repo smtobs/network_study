@@ -4,12 +4,17 @@
 #include <linux/ioctl.h>
 #include <linux/types.h>
 
-#define ICMP_FILTER_DEVICE_NAME            "icmp_filter"
+#define ICMP_FILTER_DEVICE_NAME "icmp_filter"
 
-#define IOCTL_ICMP_FILTER_MAGIC             'f'
-#define ICMP_FILTER_REQ                     0
+#define IOCTL_ICMP_FILTER_MAGIC 'f'
 
-#define IOCTL_CMD_ICMP_FILTER_REQ         _IOW(IOCTL_ICMP_FILTER_MAGIC, ICMP_FILTER_REQ, struct _ioctl_icmp_filter)
+enum IOC_FILTER_ENUM
+{
+    IOC_ICMP_FILTER_REQ,
+    IOC_ICMP_FILTER_MAX_CMD_NUM
+};
+
+#define IOCTL_CMD_ICMP_FILTER_REQ _IOW(IOCTL_ICMP_FILTER_MAGIC, IOC_ICMP_FILTER_REQ, struct _ioctl_icmp_filter)
 
 struct _ioctl_icmp_filter
 {
